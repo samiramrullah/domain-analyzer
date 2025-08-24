@@ -9,6 +9,7 @@ import re
 import requests
 from urllib.parse import urlparse
 import threading
+from bs4 import BeautifulSoup
 
 app = Flask(__name__)
 
@@ -63,15 +64,39 @@ def classify_content(domain: str):
         resp = requests.get(
             "http://" + domain,
             timeout=10,
-            headers={"User-Agent": "Mozilla/5.0"}
+            headers={"User-Agent": "Mozilla/5.0"},
+            allow_redirects=True  # follow redirects
         )
         content = resp.text.lower()
+        final_url = resp.url  # where it actually ended up
+        # print(content)
     except Exception as e:
-        return "Manual Review", f"Could not fetch page: {e}"
+        # Registered but fetch failed => default to Fail
+        return "Fail", f"Registered domain, but page fetch failed ({e})"
+    # ✅ Check Brandpa redirect rule
+    if final_url.startswith("https://brandpa.com/names/"):
+        return "Pass", "Pass as it is available for sale on Brandpa"
+
+    # 1. For-sale keywords
     if any(kw in content for kw in FOR_SALE_KEYWORDS):
         return "Pass", "Domain sale language detected"
-    if any(kw in content for kw in ACTIVE_SITE_KEYWORDS):
+
+    # 2. Parse HTML for structure
+    soup = BeautifulSoup(content, "html.parser")
+    links = soup.find_all("a")
+    navs = soup.find_all("nav")
+
+    # 3. Expanded keywords for active sites
+    ACTIVE_KEYWORDS = ACTIVE_SITE_KEYWORDS + [
+        "categories", "deals", "sign in", "sign up", "register", "my account"
+    ]
+
+    if any(kw in content for kw in ACTIVE_KEYWORDS):
         return "Fail", "Active website content detected"
+
+    # 4. Heuristic: many links or nav menus → active site
+    if len(links) > 20 or len(navs) > 0:
+        return "Fail", f"Active site detected (links={len(links)}, navs={len(navs)})"
     return "Manual Review", "Unclear signals, requires human review"
 
 # --- Main pipeline ---
