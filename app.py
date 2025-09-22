@@ -2,6 +2,7 @@ from flask import Flask, request, jsonify
 import requests
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
+import tempfile
 
 app = Flask(__name__)
 
