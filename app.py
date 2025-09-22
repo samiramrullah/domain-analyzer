@@ -12,13 +12,17 @@ def get_final_url(domain: str):
             domain = "http://" + domain
 
         options = Options()
-        options.add_argument("--headless=new")  # true headless for Chrome >=109
+        options.add_argument("--headless=new")
         options.add_argument("--disable-gpu")
         options.add_argument("--no-sandbox")
         options.add_argument("--disable-dev-shm-usage")
         options.add_argument("--log-level=3")
         options.add_argument("--window-size=1920,1080")
         options.add_experimental_option("excludeSwitches", ["enable-logging"])
+
+        # 👇 Give Chrome its own temporary user-data-dir
+        temp_dir = tempfile.mkdtemp()
+        options.add_argument(f"--user-data-dir={temp_dir}")
 
         driver = webdriver.Chrome(options=options)
         driver.get(domain)
