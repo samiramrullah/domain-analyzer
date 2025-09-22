@@ -1,2 +1,4 @@
-Flask==2.3.2
-requests==2.31.0
+Flask==2.3.3
+requests==2.32.0
+selenium==5.7.2
+gunicorn==21.2.0
